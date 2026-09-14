@@ -32,7 +32,8 @@ def parse(point, radius, target_date):
             folder='GEE_Exports',
             fileNamePrefix=file_prefix,
             region=region,
-            scale=30,
+            crs='EPSG:32652',
+            scale=10,
             maxPixels=1e13,
             fileFormat='GeoTIFF'
         )

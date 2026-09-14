@@ -39,9 +39,9 @@ def parse(point, radius, target_date):
         print("Нет данных S2")
         return
 
-    # Функция для выбора нужных каналов: B2 (Blue), B3 (Green), B4 (Red), B8 (NIR), B11 (SWIR), SCL (Mask)
+    # Функция для выбора нужных каналов: B2 (Blue), B3 (Green), B4 (Red), B8 (NIR), B11 (SWIR 1), B12 (SWIR 2), SCL (Mask)
     def select_bands(image):
-        return image.select(['B2','B3', 'B4', 'B8', 'B11', 'SCL'])
+        return image.select(['B2','B3', 'B4', 'B8', 'B11', 'B12', 'SCL'])
 
     s2_before = (s2_collection
         .filter(ee.Filter.lt('system:time_start', date_ee.millis()))
