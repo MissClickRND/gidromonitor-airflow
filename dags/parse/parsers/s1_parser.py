@@ -1,14 +1,10 @@
 import ee
 
-point = [127.50, 50.25]
-radius = 5000
-target_date = '2019-01-01'
-
 
 PROJECT_ID = 'bustling-psyche-508412-e6'
-ee.Initialize(project=PROJECT_ID)
 
 def parse(point, radius, target_date):
+    ee.Initialize(project=PROJECT_ID)
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
     date_ee = ee.Date(target_date)
@@ -24,9 +20,8 @@ def parse(point, radius, target_date):
     )
     
     s1_count = s1_collection.size().getInfo()
-    
     if s1_count == 0:
-        print("Нет данных. Попробуйте расширить окно поиска.")
+        print("Нет данных. Попробуйте расширить окно поиска")
         return
     
     def select_vv_vh(image):
@@ -54,11 +49,9 @@ def parse(point, radius, target_date):
             image=select_vv_vh(s1_before),
             description=f'S1_before_{date_before}',
             folder='GEE_Exports',
+            crs='EPSG:32652',
             fileNamePrefix=f'S1_before_{date_before}',
-            region=region,
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
+            region=region, scale=10, maxPixels=1e13, fileFormat='GeoTIFF'
         )
         task_before.start()
         print(f"Задача экспорта ДО запущена ID: {task_before.id}")
@@ -72,16 +65,11 @@ def parse(point, radius, target_date):
             image=select_vv_vh(s1_after),
             description=f'S1_after_{date_after}',
             folder='GEE_Exports',
+            crs='EPSG:32652',
             fileNamePrefix=f'S1_after_{date_after}',
-            region=region,
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
+            region=region, scale=10, maxPixels=1e13, fileFormat='GeoTIFF'
         )
         task_after.start()
         print(f"Задача экспорта ПОСЛЕ запущена ID: {task_after.id}")
     except Exception as e:
         print(f"Снимок ПОСЛЕ {target_date} не найден: {e}")
-
-
-parse(point, radius, target_date)

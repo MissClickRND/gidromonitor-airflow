@@ -1,23 +1,16 @@
 import ee
 
 PROJECT_ID = 'bustling-psyche-508412-e6'
-ee.Initialize(project=PROJECT_ID)
 
-point = [127.50, 50.25]
-radius = 5000
-target_date = '2019-06-01'
 
 def mask_s2_scl(image):
-    """
-    Коды SCL: 3=тень облака, 8=облака (средняя вер.), 9=облака (высокая вер.), 
-              10=перистые облака, 11=снег/лед
-    """
     scl = image.select('SCL')
     mask = scl.neq(3).And(scl.neq(8)).And(scl.neq(9)).And(scl.neq(10)).And(scl.neq(11))
     
     return image.updateMask(mask).divide(10000)
 
 def parse(point, radius, target_date):
+    ee.Initialize(project=PROJECT_ID)
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
 
@@ -39,7 +32,6 @@ def parse(point, radius, target_date):
         print("Нет данных S2")
         return
 
-    # Функция для выбора нужных каналов: B2 (Blue), B3 (Green), B4 (Red), B8 (NIR), B11 (SWIR 1), B12 (SWIR 2), SCL (Mask)
     def select_bands(image):
         return image.select(['B2','B3', 'B4', 'B8', 'B11', 'B12', 'SCL'])
 
@@ -70,6 +62,7 @@ def parse(point, radius, target_date):
             description=f'S2_before_{date_before}',
             folder='GEE_Exports',
             fileNamePrefix=f'S2_before_{date_before}',
+            crs='EPSG:32652',
             region=region,
             scale=10,
             maxPixels=1e13,
@@ -91,6 +84,7 @@ def parse(point, radius, target_date):
             image=img_after_selected,
             description=f'S2_after_{date_after}',
             folder='GEE_Exports',
+            crs='EPSG:32652',
             fileNamePrefix=f'S2_after_{date_after}',
             region=region,
             scale=10,
@@ -101,7 +95,3 @@ def parse(point, radius, target_date):
         print(f"Задача экспорта ПОСЛЕ запущена ID: {task_after.id}")
     except Exception as e:
         print(f"Снимок S2 ПОСЛЕ {target_date} не найден или полностью закрыт облаками: {e}")
-
-
-
-parse(point, radius, target_date)
