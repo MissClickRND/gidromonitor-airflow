@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 
+<<<<<<< HEAD
 import sys
 import os
 from pathlib import Path
@@ -17,6 +18,13 @@ from parsers.gsw_parser import parse_gsw
 from parsers.merit_parser import parse_merit
 from parsers.s1_parser import parse_s1
 from parsers.s2_parser import parse_s2
+=======
+from .parsers.dem_parser import parse_dem
+from .parsers.gsw_parser import parse_gsw
+from .parsers.merit_parser import parse_merit
+from .parsers.s1_parser import parse_s1
+from .parsers.s2_parser import parse_s2
+>>>>>>> 6cb19e3a1645b940a9a6bf4c7c7c1a6c96d08451
 
 POINT = [127.50, 50.25]
 RADIUS = 5000
