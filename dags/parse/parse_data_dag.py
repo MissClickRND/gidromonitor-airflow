@@ -2,11 +2,11 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 
-from parsers.dem_parser import parse_dem
-from parsers.gsw_parser import parse_gsw
-from parsers.merit_parser import parse_merit
-from parsers.s1_parser import parse_s1
-from parsers.s2_parser import parse_s2
+from .parsers.dem_parser import parse_dem
+from .parsers.gsw_parser import parse_gsw
+from .parsers.merit_parser import parse_merit
+from .parsers.s1_parser import parse_s1
+from .parsers.s2_parser import parse_s2
 
 POINT = [127.50, 50.25]
 RADIUS = 5000
