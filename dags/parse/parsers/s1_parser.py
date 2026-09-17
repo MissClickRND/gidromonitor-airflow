@@ -3,7 +3,7 @@ import ee
 
 PROJECT_ID = 'bustling-psyche-508412-e6'
 
-def parse(point, radius, target_date):
+def parse_s1(point, radius, target_date):
     ee.Initialize(project=PROJECT_ID)
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     

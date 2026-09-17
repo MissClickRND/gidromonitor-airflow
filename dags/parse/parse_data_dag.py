@@ -2,6 +2,16 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 
+import sys
+import os
+from pathlib import Path
+
+
+current_dir = Path(__file__).parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
+
 from parsers.dem_parser import parse_dem
 from parsers.gsw_parser import parse_gsw
 from parsers.merit_parser import parse_merit

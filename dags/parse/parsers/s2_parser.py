@@ -9,7 +9,7 @@ def mask_s2_scl(image):
     
     return image.updateMask(mask).divide(10000)
 
-def parse(point, radius, target_date):
+def parse_s2(point, radius, target_date):
     ee.Initialize(project=PROJECT_ID)
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
