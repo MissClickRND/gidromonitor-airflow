@@ -1,34 +1,49 @@
+import os
 import ee
+import json
+from parse.utils.gee_storage import download_and_upload_to_yandex
 
-PROJECT_ID = 'bustling-psyche-508412-e6'
+GEE_PROJECT = os.getenv("GEE_PROJECT")
+GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
+def init_ee():
+    with open(GEE_KEY_PATH) as f:
+        service_account_info = json.load(f)
+    credentials = ee.ServiceAccountCredentials(
+        email=service_account_info['client_email'],
+        key_data=service_account_info['private_key']
+    )
+    ee.Initialize(credentials, project=GEE_PROJECT)
 
-def parse_dem(point, radius):
-    ee.Initialize(project=PROJECT_ID)
+def parse_dem(point, radius, **kwargs):
+    init_ee()
+    
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
-    dem_collection = ee.ImageCollection('COPERNICUS/DEM/GLO30_2024_1')
-    dem_image = dem_collection.mosaic()
-    dem_selected = dem_image.select(['DEM', 'HEM', 'WBM']).toFloat()
+    image = (
+        ee.ImageCollection('COPERNICUS/DEM/GLO30_2024_1')
+        .mosaic()
+        .select(['DEM'])
+        .toFloat()
+    )
     
-    try:
-        file_prefix = 'DEM_GLO30'
-        
-        task_dem = ee.batch.Export.image.toDrive(
-            image=dem_selected,
-            description='DEM_export',
-            folder='GEE_Exports',
-            fileNamePrefix=file_prefix,
-            region=region,
-            crs='EPSG:32652',
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
-        )
-        task_dem.start()
-        
-        print(f"Задача экспорта DEM запущена ID: {task_dem.id}")
-        
-    except Exception as e:
-        print(f"Ошибка при запуске задачи экспорта DEM: {e}")
-
+    params = {
+        'region': region,
+        'crs': 'EPSG:32652',
+        'scale': 30,
+        'fileFormat': 'GEO_TIFF'
+    }
+    
+    url = image.getDownloadURL(params)
+    
+    result_path = download_and_upload_to_yandex(
+        url=url,
+        bucket_name=YC_BUCKET,
+        conn_id=YANDEX_CONN_ID,
+        folder_prefix='dem',
+        file_extension='.tif'
+    )
+    
+    return result_path

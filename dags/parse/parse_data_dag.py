@@ -1,30 +1,12 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from datetime import datetime
+from airflow.providers.standard.operators.python import PythonOperator
+from datetime import datetime, timedelta
 
-<<<<<<< HEAD
-import sys
-import os
-from pathlib import Path
-
-
-current_dir = Path(__file__).parent
-if str(current_dir) not in sys.path:
-    sys.path.insert(0, str(current_dir))
-
-
-from parsers.dem_parser import parse_dem
-from parsers.gsw_parser import parse_gsw
-from parsers.merit_parser import parse_merit
-from parsers.s1_parser import parse_s1
-from parsers.s2_parser import parse_s2
-=======
-from .parsers.dem_parser import parse_dem
-from .parsers.gsw_parser import parse_gsw
-from .parsers.merit_parser import parse_merit
-from .parsers.s1_parser import parse_s1
-from .parsers.s2_parser import parse_s2
->>>>>>> 6cb19e3a1645b940a9a6bf4c7c7c1a6c96d08451
+from parse.parsers.dem_parser import parse_dem
+from parse.parsers.gsw_parser import parse_gsw
+from parse.parsers.merit_parser import parse_merit
+from parse.parsers.s1_parser import parse_s1
+from parse.parsers.s2_parser import parse_s2
 
 POINT = [127.50, 50.25]
 RADIUS = 5000
@@ -38,7 +20,7 @@ default_args = {
 with DAG(
     dag_id='gee_geospatial_data_export',
     default_args=default_args,
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['gee', 'parsers'],
 ) as dag:
@@ -48,6 +30,7 @@ with DAG(
         task_id='export_dem',
         python_callable=parse_dem,
         op_kwargs={'point': POINT, 'radius': RADIUS},
+        execution_timeout=timedelta(minutes=30),
     )
 
     task_gsw = PythonOperator(
@@ -74,5 +57,3 @@ with DAG(
         python_callable=parse_s2,
         op_kwargs={'point': POINT, 'radius': RADIUS, 'target_date': '{{ ds }}'},
     )
-
-    [task_dem, task_gsw, task_merit, task_s1, task_s2]
