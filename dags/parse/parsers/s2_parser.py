@@ -1,24 +1,39 @@
+import os
 import ee
+import json
+from parse.utils.gee_storage import download_and_upload_to_yandex
 
-PROJECT_ID = 'bustling-psyche-508412-e6'
+
+GEE_PROJECT = os.getenv("GEE_PROJECT")
+GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
+
+def init_ee():
+    with open(GEE_KEY_PATH) as f:
+        service_account_info = json.load(f)
+    credentials = ee.ServiceAccountCredentials(
+        email=service_account_info['client_email'],
+        key_data=service_account_info['private_key']
+    )
+    ee.Initialize(credentials, project=GEE_PROJECT)
 
 
 def mask_s2_scl(image):
     scl = image.select('SCL')
+
     mask = scl.neq(3).And(scl.neq(8)).And(scl.neq(9)).And(scl.neq(10)).And(scl.neq(11))
-    
     return image.updateMask(mask).divide(10000)
 
 def parse_s2(point, radius, target_date):
-    ee.Initialize(project=PROJECT_ID)
+    
+    init_ee()
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
-
     date_ee = ee.Date(target_date)
     start_date = date_ee.advance(-30, 'day').format('YYYY-MM-dd').getInfo()
     end_date = date_ee.advance(30, 'day').format('YYYY-MM-dd').getInfo()
     
-
     s2_collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterBounds(region)
         .filterDate(start_date, end_date)
@@ -30,10 +45,7 @@ def parse_s2(point, radius, target_date):
     
     if s2_count == 0:
         print("Нет данных S2")
-        return
-
-    def select_bands(image):
-        return image.select(['B2','B3', 'B4', 'B8', 'B11', 'B12', 'SCL'])
+        return None
 
     s2_before = (s2_collection
         .filter(ee.Filter.lt('system:time_start', date_ee.millis()))
@@ -47,51 +59,42 @@ def parse_s2(point, radius, target_date):
         .first()
     )
     
-    def get_date(image):
-        return ee.Date(image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
+    def download_image(image, prefix):
+        try:
+            date_str = ee.Date(image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
+            print(f"Ближайший снимок S2 {prefix.upper()} {target_date}: {date_str}")
+            
+            img_masked = mask_s2_scl(image)
+            img_selected = img_masked.select(['B2', 'B3', 'B4', 'B8', 'B11', 'B12', 'SCL'])
+            
+            params = {
+                'region': region,
+                'crs': 'EPSG:32652',
+                'scale': 10,
+                'fileFormat': 'GEO_TIFF'
+            }
+            
+            url = img_selected.getDownloadURL(params)
+            
+            result_path = download_and_upload_to_yandex(
+                url=url,
+                bucket_name=YC_BUCKET,
+                conn_id=YANDEX_CONN_ID,
+                folder_prefix=f's2_{prefix}',
+                file_extension='.tif'
+            )
+            
+            return result_path
+            
+        except Exception as e:
+            print(f"Снимок S2 {prefix.upper()} {target_date} не найден или полностью закрыт облаками: {e}")
+            return None
 
-    try:
-        date_before = get_date(s2_before)
-        print(f"Ближайший снимок S2 ДО {target_date}: {date_before}")
-        
-        img_before = mask_s2_scl(s2_before)
-        img_before_selected = select_bands(img_before)
-        
-        task_before = ee.batch.Export.image.toDrive(
-            image=img_before_selected,
-            description=f'S2_before_{date_before}',
-            folder='GEE_Exports',
-            fileNamePrefix=f'S2_before_{date_before}',
-            crs='EPSG:32652',
-            region=region,
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
-        )
-        task_before.start()
-        print(f"Задача экспорта ДО запущена ID: {task_before.id}")
-    except Exception as e:
-        print(f"Снимок S2 ДО {target_date} не найден или полностью закрыт облаками: {e}")
+    path_before = download_image(s2_before, 'before')
+    path_after = download_image(s2_after, 'after')
     
-    try:
-        date_after = get_date(s2_after)
-        print(f"Ближайший снимок S2 ПОСЛЕ {target_date}: {date_after}")
-        
-        img_after = mask_s2_scl(s2_after)
-        img_after_selected = select_bands(img_after)
-        
-        task_after = ee.batch.Export.image.toDrive(
-            image=img_after_selected,
-            description=f'S2_after_{date_after}',
-            folder='GEE_Exports',
-            crs='EPSG:32652',
-            fileNamePrefix=f'S2_after_{date_after}',
-            region=region,
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
-        )
-        task_after.start()
-        print(f"Задача экспорта ПОСЛЕ запущена ID: {task_after.id}")
-    except Exception as e:
-        print(f"Снимок S2 ПОСЛЕ {target_date} не найден или полностью закрыт облаками: {e}")
+
+    return {
+        'before': path_before,
+        'after': path_after
+    }

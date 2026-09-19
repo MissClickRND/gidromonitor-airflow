@@ -1,34 +1,52 @@
+import os
 import ee
+import json
+from parse.utils.gee_storage import download_and_upload_to_yandex
 
-PROJECT_ID = 'bustling-psyche-508412-e6'
+GEE_PROJECT = os.getenv("GEE_PROJECT")
+GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
+def init_ee():
+    with open(GEE_KEY_PATH) as f:
+        service_account_info = json.load(f)
+    credentials = ee.ServiceAccountCredentials(
+        email=service_account_info['client_email'],
+        key_data=service_account_info['private_key']
+    )
+    ee.Initialize(credentials, project=GEE_PROJECT)
 
 def parse_gsw(point, radius):
-    ee.Initialize(project=PROJECT_ID)
+    init_ee()
+    
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
-    gsw = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
-    gsw_selected = gsw.select([ 'occurrence', 'change_abs', 'change_norm', 'transition', 
-                                'max_extent', 'recurrence', 'seasonality']).toFloat()
+    image = (
+        ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
+        .select([ 'occurrence', 'change_abs', 'change_norm', 'transition', 
+                                'max_extent', 'recurrence', 'seasonality'])
+        .toFloat()
+    )
     
-    try:
-        file_prefix = 'GSW_1_4'
-        
-        task_gsw = ee.batch.Export.image.toDrive(
-            image=gsw_selected,
-            description='GSW_export',
-            folder='GEE_Exports',
-            fileNamePrefix=file_prefix,
-            region=region,
-            crs='EPSG:32652',
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
-        )
-        task_gsw.start()
-        
-        print(f"Задача экспорта GSW запущена ID: {task_gsw.id}")
-        
-    except Exception as e:
-        print(f"Ошибка при запуске задачи экспорта GSW: {e}")
-
+    image = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
+    
+    params = {
+        'region': region,
+        'crs': 'EPSG:32652',
+        'scale': 30,
+        'fileFormat': 'GEO_TIFF'
+    }
+     
+     
+    url = image.getDownloadURL(params)    
+    
+    result_path = download_and_upload_to_yandex(
+        url=url,
+        bucket_name=YC_BUCKET,
+        conn_id=YANDEX_CONN_ID,
+        folder_prefix='gsw',
+        file_extension='.tif'
+    )
+    
+    return result_path

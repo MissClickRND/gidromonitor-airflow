@@ -1,10 +1,24 @@
+import os
 import ee
+import json
+from parse.utils.gee_storage import download_and_upload_to_yandex
 
+GEE_PROJECT = os.getenv("GEE_PROJECT")
+GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
-PROJECT_ID = 'bustling-psyche-508412-e6'
+def init_ee():
+    with open(GEE_KEY_PATH) as f:
+        service_account_info = json.load(f)
+    credentials = ee.ServiceAccountCredentials(
+        email=service_account_info['client_email'],
+        key_data=service_account_info['private_key']
+    )
+    ee.Initialize(credentials, project=GEE_PROJECT)
 
 def parse_s1(point, radius, target_date):
-    ee.Initialize(project=PROJECT_ID)
+    init_ee()
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
     date_ee = ee.Date(target_date)
@@ -22,10 +36,7 @@ def parse_s1(point, radius, target_date):
     s1_count = s1_collection.size().getInfo()
     if s1_count == 0:
         print("Нет данных. Попробуйте расширить окно поиска")
-        return
-    
-    def select_vv_vh(image):
-        return image.select(['VV', 'VH'])
+        return None
     
     s1_before = (s1_collection
         .filter(ee.Filter.lt('system:time_start', date_ee.millis()))
@@ -39,37 +50,41 @@ def parse_s1(point, radius, target_date):
         .first()
     )
     
-    def get_date(image):
-        return ee.Date(image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
+    def download_image(image, prefix):
+        try:
+            date_str = ee.Date(image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
+            print(f"Ближайший снимок {prefix.upper()} {target_date}: {date_str}")
+            
+            img_to_download = image.select(['VV', 'VH'])
+            
+
+            params = {
+                'region': region,
+                'crs': 'EPSG:32652',
+                'scale': 10,
+                'fileFormat': 'GEO_TIFF'
+            }
+            
+            url = img_to_download.getDownloadURL(params)
+            
+            result_path = download_and_upload_to_yandex(
+                url=url,
+                bucket_name=YC_BUCKET,
+                conn_id=YANDEX_CONN_ID,
+                folder_prefix=f's1_{prefix}',
+                file_extension='.tif'
+            )
+            
+            return result_path
+            
+        except Exception as e:
+            print(f"Снимок {prefix.upper()} {target_date} не найден или ошибка обработки: {e}")
+            return None
+
+    path_before = download_image(s1_before, 'before')
+    path_after = download_image(s1_after, 'after')
     
-    try:
-        date_before = get_date(s1_before)
-        print(f"Ближайший снимок ДО {target_date}: {date_before}")
-        task_before = ee.batch.Export.image.toDrive(
-            image=select_vv_vh(s1_before),
-            description=f'S1_before_{date_before}',
-            folder='GEE_Exports',
-            crs='EPSG:32652',
-            fileNamePrefix=f'S1_before_{date_before}',
-            region=region, scale=10, maxPixels=1e13, fileFormat='GeoTIFF'
-        )
-        task_before.start()
-        print(f"Задача экспорта ДО запущена ID: {task_before.id}")
-    except Exception as e:
-        print(f"Снимок ДО {target_date} не найден: {e}")
-    
-    try:
-        date_after = get_date(s1_after)
-        print(f"Ближайший снимок ПОСЛЕ {target_date}: {date_after}")
-        task_after = ee.batch.Export.image.toDrive(
-            image=select_vv_vh(s1_after),
-            description=f'S1_after_{date_after}',
-            folder='GEE_Exports',
-            crs='EPSG:32652',
-            fileNamePrefix=f'S1_after_{date_after}',
-            region=region, scale=10, maxPixels=1e13, fileFormat='GeoTIFF'
-        )
-        task_after.start()
-        print(f"Задача экспорта ПОСЛЕ запущена ID: {task_after.id}")
-    except Exception as e:
-        print(f"Снимок ПОСЛЕ {target_date} не найден: {e}")
+    return {
+        'before': path_before,
+        'after': path_after
+    }

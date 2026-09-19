@@ -1,34 +1,49 @@
+import os
 import ee
+import json
+from parse.utils.gee_storage import download_and_upload_to_yandex
 
-PROJECT_ID = 'bustling-psyche-508412-e6'
+GEE_PROJECT = os.getenv("GEE_PROJECT")
+GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
-
+def init_ee():
+    with open(GEE_KEY_PATH) as f:
+        service_account_info = json.load(f)
+    credentials = ee.ServiceAccountCredentials(
+        email=service_account_info['client_email'],
+        key_data=service_account_info['private_key']
+    )
+    ee.Initialize(credentials, project=GEE_PROJECT)
 
 def parse_merit(point, radius):
-    ee.Initialize(project=PROJECT_ID)
+    init_ee()
     region = ee.Geometry.Point(point).buffer(radius).bounds()
     
-    merit_hydro = ee.Image('MERIT/Hydro/v1_0_1')
-    merit_selected = merit_hydro.select(['elv', 'dir', 'wth', 'wat', 'upa', 'upg', 'hnd', 'viswth']).toFloat()
     
-    try:
-        file_prefix = 'MERIT_Hydro'
-        
-        task_merit = ee.batch.Export.image.toDrive(
-            image=merit_selected,
-            description='MERIT_export',
-            folder='GEE_Exports',
-            fileNamePrefix=file_prefix,
-            region=region,
-            crs='EPSG:32652',
-            scale=10,
-            maxPixels=1e13,
-            fileFormat='GeoTIFF'
-        )
-        task_merit.start()
-        
-        print(f"Задача экспорта MERIT запущена ID: {task_merit.id}")
-        
-    except Exception as e:
-        print(f"Ошибка при запуске задачи экспорта MERIT: {e}")
+    image = (
+        ee.Image('MERIT/Hydro/v1_0_1')
+        .select(['elv', 'dir', 'wth', 'wat', 'upa', 'upg', 'hnd', 'viswth'])
+        .toFloat()
+    )
+    
+    params = {
+        'region': region,
+        'crs': 'EPSG:32652',
+        'scale': 10,
+        'fileFormat': 'GEO_TIFF'
+    }
+    
+    url = image.getDownloadURL(params)
+    
+    result_path = download_and_upload_to_yandex(
+        url=url,
+        bucket_name=YC_BUCKET,
+        conn_id=YANDEX_CONN_ID,
+        folder_prefix='merit',
+        file_extension='.tif'
+    )
+    
+    return result_path
 

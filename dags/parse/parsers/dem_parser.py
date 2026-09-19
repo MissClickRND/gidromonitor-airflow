@@ -17,7 +17,7 @@ def init_ee():
     )
     ee.Initialize(credentials, project=GEE_PROJECT)
 
-def parse_dem(point, radius, **kwargs):
+def parse_dem(point, radius):
     init_ee()
     
     region = ee.Geometry.Point(point).buffer(radius).bounds()
