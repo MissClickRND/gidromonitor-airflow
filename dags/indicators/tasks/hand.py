@@ -1,28 +1,40 @@
 import rasterio
-import numpy as np
+import os
 import matplotlib.pyplot as plt
+import numpy as np
 
-input_merit = 'MERIT_Hydro.tif'
+from utils.gee_storage import download_file, upload_file_to_yandex
 
-with rasterio.open(input_merit) as src:
-    profile = src.profile
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
+
+def calc_hand(url='gee_exports/merit/merit_20260920_162349.tif'):
+    original_filename = url.split('/')[-1]
+    metaname = ''.join(original_filename.split('_')[1:])
     
-    hand = src.read(7).astype(np.float32)  # hnd
+    local_input_path = f"/tmp/{original_filename}"
+    download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
+    file = download_file(url=download_url, local_path=local_input_path)
     
-    if src.nodata is not None:
-        hand[hand == src.nodata] = np.nan
+    with rasterio.open(file) as src:
+        
+        profile = src.profile
     
-    profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
-    with rasterio.open('MERIT_HAND.tif', 'w', **profile) as dst:
-        dst.write(hand, 1)
-    
-    
-    plt.figure(figsize=(10, 10))
-    vmin_h, vmax_h = np.nanpercentile(hand, [2, 98])
-    im = plt.imshow(np.clip(hand, 0, 50), cmap='Blues_r', vmin=0, vmax=50)
-    plt.colorbar(im, label='Высота над ближайшим водотоком (м)')
-    plt.title(f'HAND')
-    plt.axis('off')
-    plt.tight_layout()
-    plt.show()
-    
+        hand = src.read(7).astype(np.float32)  # hnd
+        
+        if src.nodata is not None:
+            hand[hand == src.nodata] = np.nan
+        
+        profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
+        with rasterio.open('MERIT_HAND.tif', 'w', **profile) as dst:
+            dst.write(hand, 1)
+        
+        
+        result = upload_file_to_yandex(
+        local_path='/tmp/MERIT_HAND.tif',
+        yandex_object_name=f'gee_exports/hand/hand_{metaname}', 
+        bucket_name=YC_BUCKET,
+        conn_id=YANDEX_CONN_ID,)
+        
+        return result
+        

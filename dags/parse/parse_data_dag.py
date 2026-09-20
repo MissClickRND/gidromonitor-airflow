@@ -10,6 +10,7 @@ from parse.parsers.s2_parser import parse_s2
 
 POINT = [127.50, 50.25]
 RADIUS = 5000
+TARGET_DATE = datetime(2019, 1, 1)
 
 default_args = {
     'owner': 'airflow',
@@ -49,11 +50,11 @@ with DAG(
     task_s1 = PythonOperator(
         task_id='export_sentinel1',
         python_callable=parse_s1,
-        op_kwargs={'point': POINT, 'radius': RADIUS, 'target_date': '{{ ds }}'},
+        op_kwargs={'point': POINT, 'radius': RADIUS, 'target_date': TARGET_DATE},
     )
 
     task_s2 = PythonOperator(
         task_id='export_sentinel2',
         python_callable=parse_s2,
-        op_kwargs={'point': POINT, 'radius': RADIUS, 'target_date': '{{ ds }}'},
+        op_kwargs={'point': POINT, 'radius': RADIUS, 'target_date': TARGET_DATE},
     )

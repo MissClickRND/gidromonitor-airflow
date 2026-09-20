@@ -1,7 +1,7 @@
 import os
 import ee
 import json
-from parse.utils.gee_storage import download_and_upload_to_yandex
+from utils.gee_storage import download_and_upload_to_yandex
 
 GEE_PROJECT = os.getenv("GEE_PROJECT")
 GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
