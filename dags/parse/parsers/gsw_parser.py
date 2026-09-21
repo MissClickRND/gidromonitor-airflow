@@ -2,6 +2,7 @@ import os
 import ee
 import json
 from utils.gee_storage import download_and_upload_to_yandex
+from utils.file_utils import GSW_BANDS_CONFIG
 
 GEE_PROJECT = os.getenv("GEE_PROJECT")
 GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
@@ -24,12 +25,12 @@ def parse_gsw(point, radius):
     
     image = (
         ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
-        .select([ 'occurrence', 'change_abs', 'change_norm', 'transition', 
-                                'max_extent', 'recurrence', 'seasonality'])
+        .select([
+            'occurrence', 'change_abs', 'change_norm',
+            'transition', 'max_extent', 'recurrence', 'seasonality',
+        ])
         .toFloat()
     )
-    
-    image = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
     
     params = {
         'region': region,
@@ -38,7 +39,6 @@ def parse_gsw(point, radius):
         'fileFormat': 'GEO_TIFF'
     }
      
-     
     url = image.getDownloadURL(params)    
     
     result_path = download_and_upload_to_yandex(
@@ -46,7 +46,8 @@ def parse_gsw(point, radius):
         bucket_name=YC_BUCKET,
         conn_id=YANDEX_CONN_ID,
         folder_prefix='gsw',
-        file_extension='.tif'
+        file_extension='.tif',
+        bands_config=GSW_BANDS_CONFIG,
     )
     
     return result_path

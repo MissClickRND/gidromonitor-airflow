@@ -33,7 +33,7 @@ def calc_ndwi(url='gee_exports/s2_before/s2_before_20260920_162354.tif'):
         ndwi[cloud_shadow_mask] = np.nan
             
         profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
-        with rasterio.open(os.path.join('.', 'S2_NDWI.tif'), 'w', **profile) as dst:
+        with rasterio.open(os.path.join('/tmp', 'S2_NDWI.tif'), 'w', **profile) as dst:
             dst.write(ndwi.astype(np.float32), 1)
 
         result = upload_file_to_yandex(

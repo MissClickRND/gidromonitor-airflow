@@ -8,7 +8,7 @@ from utils.gee_storage import download_file, upload_file_to_yandex
 YC_BUCKET = os.getenv("YC_BUCKET")
 YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
-def calc_hand(url='gee_exports/merit/merit_20260920_162349.tif'):
+def calc_hand(url):
     original_filename = url.split('/')[-1]
     metaname = ''.join(original_filename.split('_')[1:])
     
@@ -20,14 +20,14 @@ def calc_hand(url='gee_exports/merit/merit_20260920_162349.tif'):
         
         profile = src.profile
     
-        hand = src.read(7).astype(np.float32)  # hnd
+        hand = src.read(7).astype(np.float32)
         
         if src.nodata is not None:
             hand[hand == src.nodata] = np.nan
         
         profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
-        with rasterio.open('MERIT_HAND.tif', 'w', **profile) as dst:
-            dst.write(hand, 1)
+        with rasterio.open(os.path.join('/tmp', 'MERIT_HAND.tif'), 'w', **profile) as dst:
+            dst.write(hand.astype(np.float32), 1)
         
         
         result = upload_file_to_yandex(

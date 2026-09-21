@@ -1,7 +1,3 @@
-"""
-Модуль для работы с хранилищами: скачивание из GEE и загрузка в Yandex Cloud.
-Поддерживает автоматическую обработку ZIP-архивов от GEE.
-"""
 import os
 import requests
 import tempfile
@@ -14,6 +10,26 @@ from airflow.utils.log.logging_mixin import LoggingMixin
 from utils.file_utils import process_downloaded_file
 
 log = LoggingMixin().log
+
+
+def download_file_from_yandex(
+    bucket_name: str,
+    s3_key: str,
+    local_path: str,
+    conn_id: str
+) -> str:
+    """Скачивает файл из Yandex Object Storage (S3) по точному пути."""
+    log.info(f"Скачиваю файл из Yandex Object Storage: s3://{bucket_name}/{s3_key}")
+    
+    s3_hook = S3Hook(aws_conn_id=conn_id)
+    
+    s3_object = s3_hook.get_key(key=s3_key, bucket_name=bucket_name)
+    
+    s3_object.download_file(local_path)
+    
+    file_size = os.path.getsize(local_path)
+    log.info(f"Скачивание завершено. Размер: {file_size:,} байт")
+    return local_path
 
 
 def download_file(url: str, local_path: str, timeout: int = 600) -> str:
@@ -72,7 +88,6 @@ def download_and_upload_to_yandex(
     timeout: int = 600,
     bands_config: Optional[Dict[str, Any]] = None,
 ) -> str:
-
     ts = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
     clean_prefix = folder_prefix.strip('/').lower()
     file_name = f"{clean_prefix}_{ts}{file_extension}"
@@ -110,7 +125,7 @@ def download_and_upload_to_yandex(
         return result
         
     except Exception as e:
-        log.error(f"❌ Ошибка при обработке файла: {e}")
+        log.error(f"Ошибка при обработке файла: {e}")
         raise
     
     finally:

@@ -2,6 +2,7 @@ import os
 import ee
 import json
 from utils.gee_storage import download_and_upload_to_yandex
+from utils.file_utils import DEM_BANDS_CONFIG
 
 GEE_PROJECT = os.getenv("GEE_PROJECT")
 GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
@@ -43,7 +44,8 @@ def parse_dem(point, radius):
         bucket_name=YC_BUCKET,
         conn_id=YANDEX_CONN_ID,
         folder_prefix='dem',
-        file_extension='.tif'
+        file_extension='.tif',
+        bands_config=DEM_BANDS_CONFIG,
     )
     
     return result_path

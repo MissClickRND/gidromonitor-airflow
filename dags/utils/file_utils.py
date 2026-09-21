@@ -1,8 +1,3 @@
-"""
-Универсальные утилиты для работы с файлами: определение типа,
-распаковка архивов, сборка многослойных GeoTIFF.
-Подходит для любых моделей и пайплайнов.
-"""
 import os
 import re
 import tempfile
@@ -67,6 +62,51 @@ S1_BANDS_CONFIG = {
     'mask_bands': [],
 }
 
+MERIT_BANDS_CONFIG = {
+    'bands_order': ['elv', 'dir', 'wth', 'wat', 'upa', 'upg', 'hnd', 'viswth'],
+    'patterns': {
+        'elv':    r'(?i)(^|[^a-z0-9])elv([^a-z0-9]|$)',
+        'dir':    r'(?i)(^|[^a-z0-9])dir([^a-z0-9]|$)',
+        'wth':    r'(?i)(^|[^a-z0-9])wth([^a-z0-9]|$)',
+        'wat':    r'(?i)(^|[^a-z0-9])wat([^a-z0-9]|$)',
+        'upa':    r'(?i)(^|[^a-z0-9])upa([^a-z0-9]|$)',
+        'upg':    r'(?i)(^|[^a-z0-9])upg([^a-z0-9]|$)',
+        'hnd':    r'(?i)(^|[^a-z0-9])hnd([^a-z0-9]|$)',
+        'viswth': r'(?i)(^|[^a-z0-9])viswth([^a-z0-9]|$)',
+    },
+    'target_band': 'elv',
+    'normalize_bands': [],
+    'mask_bands': [],
+}
+
+GSW_BANDS_CONFIG = {
+    'bands_order': [
+        'occurrence', 'change_abs', 'change_norm',
+        'transition', 'max_extent', 'recurrence', 'seasonality',
+    ],
+    'patterns': {
+        'occurrence':  r'(?i)(^|[^a-z0-9])occurrence([^a-z0-9]|$)',
+        'change_abs':  r'(?i)(^|[^a-z0-9])change_abs([^a-z0-9]|$)',
+        'change_norm': r'(?i)(^|[^a-z0-9])change_norm([^a-z0-9]|$)',
+        'transition':  r'(?i)(^|[^a-z0-9])transition([^a-z0-9]|$)',
+        'max_extent':  r'(?i)(^|[^a-z0-9])max_extent([^a-z0-9]|$)',
+        'recurrence':  r'(?i)(^|[^a-z0-9])recurrence([^a-z0-9]|$)',
+        'seasonality': r'(?i)(^|[^a-z0-9])seasonality([^a-z0-9]|$)',
+    },
+    'target_band': 'occurrence',
+    'normalize_bands': [],
+    'mask_bands': [],
+}
+
+DEM_BANDS_CONFIG = {
+    'bands_order': ['DEM'],
+    'patterns': {
+        'DEM': r'(?i)(^|[^a-z0-9])dem([^a-z0-9]|$)',
+    },
+    'target_band': 'DEM',
+    'normalize_bands': [],
+    'mask_bands': [],
+}
 
 
 def _find_member(names: List[str], pattern: str) -> str:

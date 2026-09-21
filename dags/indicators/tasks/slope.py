@@ -1,37 +1,46 @@
 import rasterio
-import numpy as np
+import os
 import matplotlib.pyplot as plt
+import numpy as np
 
-input_dem = 'GLO30_km.tif'
-PIXEL_SIZE = 10.0
+from utils.gee_storage import download_file, upload_file_to_yandex
 
-with rasterio.open(input_dem) as src:
+YC_BUCKET = os.getenv("YC_BUCKET")
+YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
+
+def calc_slope(url):
+    original_filename = url.split('/')[-1]
+    metaname = ''.join(original_filename.split('_')[1:])
+    local_input_path = f"/tmp/{original_filename}"
+    download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
+    file = download_file(url=download_url, local_path=local_input_path)
     
-    dem = src.read(1).astype(np.float32)
-    
-    profile = src.profile
+    with rasterio.open(file) as src:
         
-    if src.nodata is not None:
-        dem[dem == src.nodata] = np.nan
-    
-    dy, dx = np.gradient(dem, PIXEL_SIZE, PIXEL_SIZE)
-    
-    slope_rad = np.arctan(np.sqrt(dx**2 + dy**2))
-    
-    slope_deg = np.degrees(slope_rad)
+        dem = src.read(1).astype(np.float32)
+        
+        profile = src.profile
+            
+        if src.nodata is not None:
+            dem[dem == src.nodata] = np.nan
+        
+        dy, dx = np.gradient(dem, 10.0, 10.0)
+        
+        slope_rad = np.arctan(np.sqrt(dx**2 + dy**2))
+        
+        slope_deg = np.degrees(slope_rad)
 
-    slope_deg = np.where(np.isnan(dem), np.nan, slope_deg)
-    
-    
-    profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
-    with rasterio.open('DEM_Slope_degrees.tif', 'w', **profile) as dst:
-        dst.write(slope_deg.astype(np.float32), 1)
-                
-                
-    plt.figure(figsize=(10, 8))   
-    
-    im = plt.imshow(np.clip(slope_deg, 0, 30), cmap='YlOrRd', vmin=0, vmax=30)
-    plt.title('Slope')
-    plt.colorbar(im, label='градусы')
-    plt.tight_layout()
-    plt.show()
+        slope_deg = np.where(np.isnan(dem), np.nan, slope_deg)
+        
+        
+        profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
+        with rasterio.open(os.path.join('/tmp', 'DEM_Slope_degrees.tif'), 'w', **profile) as dst:
+            dst.write(slope_deg.astype(np.float32), 1)
+            
+        result = upload_file_to_yandex(
+            local_path='/tmp/DEM_Slope_degrees.tif',
+            yandex_object_name=f'gee_exports/slope/slope_{metaname}', 
+            bucket_name=YC_BUCKET,
+            conn_id=YANDEX_CONN_ID,)
+        
+        return result

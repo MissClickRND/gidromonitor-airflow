@@ -2,6 +2,7 @@ import os
 import ee
 import json
 from utils.gee_storage import download_and_upload_to_yandex
+from utils.file_utils import S1_BANDS_CONFIG
 
 GEE_PROJECT = os.getenv("GEE_PROJECT")
 GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
@@ -56,7 +57,6 @@ def parse_s1(point, radius, target_date):
             print(f"Ближайший снимок {prefix.upper()} {target_date}: {date_str}")
             
             img_to_download = image.select(['VV', 'VH'])
-            
 
             params = {
                 'region': region,
@@ -72,7 +72,8 @@ def parse_s1(point, radius, target_date):
                 bucket_name=YC_BUCKET,
                 conn_id=YANDEX_CONN_ID,
                 folder_prefix=f's1_{prefix}',
-                file_extension='.tif'
+                file_extension='.tif',
+                bands_config=S1_BANDS_CONFIG,
             )
             
             return result_path

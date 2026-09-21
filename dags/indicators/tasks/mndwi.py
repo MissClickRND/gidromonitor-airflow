@@ -8,7 +8,7 @@ from utils.gee_storage import download_file, upload_file_to_yandex
 YC_BUCKET = os.getenv("YC_BUCKET")
 YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
-def calc_mndwi(url='gee_exports/s2_before/s2_before_20260920_162354.tif'):
+def calc_mndwi(url):
     original_filename = url.split('/')[-1]
     metaname = ''.join(original_filename.split('_')[1:])
     
@@ -20,7 +20,7 @@ def calc_mndwi(url='gee_exports/s2_before/s2_before_20260920_162354.tif'):
         profile = src.profile
         
         blue = src.read(1).astype(np.float32)  # B2 - синий
-        green = src.read(2).astype(np.float32)  # B3 - зеленый
+        green = src.read(2).astype(np.float32)  # B3 - зеленый-
         red = src.read(3).astype(np.float32)  # B4 - красный
         nir = src.read(4).astype(np.float32)  # B8 - ближний ИК
         swir1 = src.read(5).astype(np.float32)  # B11 - Swir 1
@@ -33,7 +33,7 @@ def calc_mndwi(url='gee_exports/s2_before/s2_before_20260920_162354.tif'):
         mndwi[cloud_shadow_mask] = np.nan
             
         profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
-        with rasterio.open(os.path.join('.', 'S2_MNDWI.tif'), 'w', **profile) as dst:
+        with rasterio.open(os.path.join('/tmp', 'S2_MNDWI.tif'), 'w', **profile) as dst:
             dst.write(mndwi.astype(np.float32), 1)
             
             
