@@ -24,6 +24,9 @@ def calc_occurrence(url):
         
         if src.nodata is not None:
             occurrence[occurrence == src.nodata] = np.nan
+            
+        occurrence[occurrence < 0] = 0.0
+        
         
         profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
         with rasterio.open(os.path.join('/tmp', 'GSW_OCCURRENCE.tif'), 'w', **profile) as dst:

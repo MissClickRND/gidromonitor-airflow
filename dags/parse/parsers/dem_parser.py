@@ -33,7 +33,7 @@ def parse_dem(point, radius):
     params = {
         'region': region,
         'crs': 'EPSG:32652',
-        'scale': 30,
+        'scale': 10,
         'fileFormat': 'GEO_TIFF'
     }
     

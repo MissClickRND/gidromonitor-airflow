@@ -20,9 +20,12 @@ def calc_seasonality(url):
         profile = src.profile
     
         seasonality = src.read(7).astype(np.float32)
-        
+          
         if src.nodata is not None:
             seasonality[seasonality == src.nodata] = np.nan
+            
+        seasonality[seasonality < 0] = 0.0
+            
         
         profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
         with rasterio.open(os.path.join('/tmp', 'GSW_SEASONALITY.tif'), 'w', **profile) as dst:
