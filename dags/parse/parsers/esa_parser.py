@@ -4,7 +4,7 @@ import json
 
 from utils.geojson_utils import geojson_to_ee_geometry
 from utils.gee_tiled_download import tiled_download_and_upload
-from utils.file_utils import GSW_BANDS_CONFIG
+from utils.file_utils import ESA_BANDS_CONFIG
 
 GEE_PROJECT = os.getenv("GEE_PROJECT")
 GEE_KEY_PATH = os.getenv("GEE_KEY_PATH")
@@ -20,18 +20,18 @@ def init_ee():
     )
     ee.Initialize(credentials, project=GEE_PROJECT)
 
-def parse_gsw(id, polygon):
+def parse_esa(id, polygon):
     init_ee()
     
     geom = geojson_to_ee_geometry(polygon)
     
     image = (
-        ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
-        .select([
-            'occurrence', 'max_extent', 'seasonality'
-        ])
+        ee.ImageCollection('ESA/WorldCover/v200')
+        .mosaic()
+        .select(['Map'])
         .toFloat()
     )
+    
     
     result_path = tiled_download_and_upload(
         image=image,
@@ -43,9 +43,9 @@ def parse_gsw(id, polygon):
         },
         bucket_name=YC_BUCKET,
         conn_id=YANDEX_CONN_ID,
-        folder_prefix=f'{id}/GSW',
-        tile_size_deg=0.1,
-        bands_config=GSW_BANDS_CONFIG,
+        folder_prefix=f'{id}/ESA',
+        tile_size_deg=0.25,
+        bands_config=ESA_BANDS_CONFIG,
         clip_to_original=True,
     )
     

@@ -17,6 +17,7 @@ x-airflow-common:
     AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: '30'
     AIRFLOW__DAG_PROCESSOR__MIN_FILE_PROCESS_INTERVAL: '10'
     AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: '10'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
 
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
@@ -118,6 +119,8 @@ services:
         mkdir -v -p /opt/airflow/{logs,dags,plugins,config}
         chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/
         /entrypoint airflow db migrate
+        
+        # Ваш существующий главный пользователь
         /entrypoint airflow users create \
           --username "$${_AIRFLOW_WWW_USER_USERNAME}" \
           --firstname "$${_AIRFLOW_WWW_USER_FIRSTNAME}" \
@@ -126,6 +129,15 @@ services:
           --email "$${_AIRFLOW_WWW_USER_EMAIL}" \
           --password "$${_AIRFLOW_WWW_USER_PASSWORD}"
 
+        # Специальный пользователь для NestJS backend
+        /entrypoint airflow users create \
+          --username "nestjs_api" \
+          --firstname "NestJS" \
+          --lastname "Backend" \
+          --role "Op" \
+          --email "nestjs@local" \
+          --password "nestjs_api"
+
         /entrypoint airflow connections add \
           'yandex_object_storage' \
           --conn-type 'aws' \
@@ -133,7 +145,7 @@ services:
           --conn-password "$${YANDEX_SECRET_KEY}" \
           --conn-extra '{"endpoint_url": "https://storage.yandexcloud.net"}'
           
-        echo "Connection successfully added to the database!"
+        echo "Initialization completed successfully!"
     environment:
       <<: *airflow-common-env
     user: "0:0"

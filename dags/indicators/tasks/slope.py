@@ -10,6 +10,7 @@ YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
 def calc_slope(url):
     original_filename = url.split('/')[-1]
+    foldername = url.split('/')[-2]
     metaname = ''.join(original_filename.split('_')[1:])
     local_input_path = f"/tmp/{original_filename}"
     download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
@@ -39,7 +40,7 @@ def calc_slope(url):
             
         result = upload_file_to_yandex(
             local_path='/tmp/DEM_Slope_degrees.tif',
-            yandex_object_name=f'gee_exports/slope/slope_{metaname}', 
+            yandex_object_name=f'gee_exports/{foldername}/slope_{metaname}', 
             bucket_name=YC_BUCKET,
             conn_id=YANDEX_CONN_ID,)
         

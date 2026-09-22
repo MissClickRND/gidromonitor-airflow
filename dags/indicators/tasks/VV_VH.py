@@ -11,6 +11,7 @@ YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
 def calc_vv_vh(url):
     original_filename = url.split('/')[-1]
+    foldername = url.split('/')[-2]
     metaname = ''.join(original_filename.split('_')[1:])
     local_input_path = f"/tmp/{original_filename}"
     download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
@@ -30,7 +31,7 @@ def calc_vv_vh(url):
         
         result = upload_file_to_yandex(
             local_path='/tmp/S1_VV_VH_dB.tif',
-            yandex_object_name=f'gee_exports/vv_vh/vv_vh_{metaname}', 
+            yandex_object_name=f'gee_exports/{foldername}/vv_vh_{metaname}', 
             bucket_name=YC_BUCKET,
             conn_id=YANDEX_CONN_ID,)
                 

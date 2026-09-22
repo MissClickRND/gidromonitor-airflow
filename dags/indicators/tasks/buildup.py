@@ -8,10 +8,11 @@ from utils.gee_storage import download_file, upload_file_to_yandex
 YC_BUCKET = os.getenv("YC_BUCKET")
 YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
-def calc_seasonality(url):
+def calc_buildup(url):
     original_filename = url.split('/')[-1]
     foldername = url.split('/')[-2]
     metaname = ''.join(original_filename.split('_')[1:])
+    
     local_input_path = f"/tmp/{original_filename}"
     download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
     file = download_file(url=download_url, local_path=local_input_path)
@@ -20,22 +21,22 @@ def calc_seasonality(url):
         
         profile = src.profile
     
-        seasonality = src.read(3).astype(np.float32)
-          
+        buildup = src.read(1).astype(np.float32)
+        
         if src.nodata is not None:
-            seasonality[seasonality == src.nodata] = np.nan
+            buildup[buildup == src.nodata] = np.nan
             
-        seasonality[seasonality < 0] = 0.0
-            
+        buildup[buildup < 0] = 0.0
+        
         
         profile.update(dtype=rasterio.float32, count=1, nodata=np.nan)
-        with rasterio.open(os.path.join('/tmp', 'GSW_SEASONALITY.tif'), 'w', **profile) as dst:
-            dst.write(seasonality.astype(np.float32), 1)
+        with rasterio.open(os.path.join('/tmp', 'ESA_BUILDUP.tif'), 'w', **profile) as dst:
+            dst.write(buildup.astype(np.float32), 1)
         
         
         result = upload_file_to_yandex(
-        local_path='/tmp/GSW_SEASONALITY.tif',
-        yandex_object_name=f'gee_exports/{foldername}/seasonality_{metaname}', 
+        local_path='/tmp/ESA_BUILDUP.tif',
+        yandex_object_name=f'gee_exports/{foldername}/buildup_{metaname}', 
         bucket_name=YC_BUCKET,
         conn_id=YANDEX_CONN_ID,)
         

@@ -10,6 +10,7 @@ YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 
 def calc_aweish(url='gee_exports/s2_before/s2_before_20260920_162354.tif'):
     original_filename = url.split('/')[-1]
+    foldername = url.split('/')[-2]
     metaname = ''.join(original_filename.split('_')[1:])
     local_input_path = f"/tmp/{original_filename}"
     download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
@@ -39,7 +40,7 @@ def calc_aweish(url='gee_exports/s2_before/s2_before_20260920_162354.tif'):
         
         result = upload_file_to_yandex(
             local_path='/tmp/S2_AWEIsh.tif',
-            yandex_object_name=f'gee_exports/aweish/aweish_{metaname}', 
+            yandex_object_name=f'gee_exports/{foldername}/aweish_{metaname}', 
             bucket_name=YC_BUCKET,
             conn_id=YANDEX_CONN_ID,)
         

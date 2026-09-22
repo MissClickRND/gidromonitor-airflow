@@ -1,7 +1,9 @@
 import os
 import ee
 import json
-from utils.gee_storage import download_and_upload_to_yandex
+
+from utils.geojson_utils import geojson_to_ee_geometry
+from utils.gee_tiled_download import tiled_download_and_upload
 from utils.file_utils import MERIT_BANDS_CONFIG
 
 GEE_PROJECT = os.getenv("GEE_PROJECT")
@@ -18,32 +20,30 @@ def init_ee():
     )
     ee.Initialize(credentials, project=GEE_PROJECT)
 
-def parse_merit(point, radius):
+def parse_merit(id, polygon):
     init_ee()
-    region = ee.Geometry.Point(point).buffer(radius).bounds()
+    geom = geojson_to_ee_geometry(polygon)
     
     image = (
         ee.Image('MERIT/Hydro/v1_0_1')
-        .select(['elv', 'dir', 'wth', 'wat', 'upa', 'upg', 'hnd', 'viswth'])
+        .select(['hnd'])
         .toFloat()
     )
     
-    params = {
-        'region': region,
-        'crs': 'EPSG:32652',
-        'scale': 10,
-        'fileFormat': 'GEO_TIFF'
-    }
-    
-    url = image.getDownloadURL(params)
-    
-    result_path = download_and_upload_to_yandex(
-        url=url,
+    result_path = tiled_download_and_upload(
+        image=image,
+        geometry=geom,
+        download_params={
+            "crs": "EPSG:32652",
+            "scale": 10,
+            "fileFormat": "GEO_TIFF",
+        },
         bucket_name=YC_BUCKET,
         conn_id=YANDEX_CONN_ID,
-        folder_prefix='merit',
-        file_extension='.tif',
+        folder_prefix=f'{id}/MERIT',
+        tile_size_deg=0.25,
         bands_config=MERIT_BANDS_CONFIG,
+        clip_to_original=True,
     )
     
     return result_path

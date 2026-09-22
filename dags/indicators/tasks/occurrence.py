@@ -11,7 +11,7 @@ YANDEX_CONN_ID = os.getenv("YANDEX_CONN_ID")
 def calc_occurrence(url):
     original_filename = url.split('/')[-1]
     metaname = ''.join(original_filename.split('_')[1:])
-    
+    foldername = url.split('/')[-2]
     local_input_path = f"/tmp/{original_filename}"
     download_url= f"https://storage.yandexcloud.net/{YC_BUCKET}/{url}"
     file = download_file(url=download_url, local_path=local_input_path)
@@ -35,7 +35,7 @@ def calc_occurrence(url):
         
         result = upload_file_to_yandex(
         local_path='/tmp/GSW_OCCURRENCE.tif',
-        yandex_object_name=f'gee_exports/occurrence/occurrence_{metaname}', 
+        yandex_object_name=f'gee_exports/{foldername}/occurrence_{metaname}', 
         bucket_name=YC_BUCKET,
         conn_id=YANDEX_CONN_ID,)
         
